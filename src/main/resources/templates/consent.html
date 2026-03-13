@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Consent · Custom OAuth</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+            padding: 24px;
+        }
+
+        .card {
+            background: rgba(255, 255, 255, 0.06);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 20px;
+            padding: 48px 44px;
+            width: 100%;
+            max-width: 520px;
+            box-shadow: 0 8px 40px rgba(0, 0, 0, 0.4);
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 36px;
+        }
+
+        .logo-icon {
+            width: 38px;
+            height: 38px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+        }
+
+        .logo-text {
+            font-size: 18px;
+            font-weight: 700;
+            color: #fff;
+            letter-spacing: -0.3px;
+        }
+
+        h1 {
+            font-size: 26px;
+            font-weight: 700;
+            color: #fff;
+            margin-bottom: 8px;
+            letter-spacing: -0.5px;
+        }
+
+        .subtitle {
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.5);
+            margin-bottom: 32px;
+            line-height: 1.6;
+        }
+
+        .subtitle strong {
+            color: #fff;
+            font-weight: 600;
+        }
+
+        .scope-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-bottom: 28px;
+        }
+
+        .scope-box {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 12px;
+            padding: 16px 18px;
+            transition: border-color 0.2s, background 0.2s, transform 0.15s;
+        }
+
+        .scope-box:hover {
+            border-color: rgba(102, 126, 234, 0.45);
+            background: rgba(102, 126, 234, 0.08);
+            transform: translateY(-1px);
+        }
+
+        .scope-label {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            cursor: pointer;
+        }
+
+        input[type="checkbox"] {
+            width: 16px;
+            height: 16px;
+            accent-color: #667eea;
+            cursor: pointer;
+            flex-shrink: 0;
+        }
+
+        .scope-name {
+            font-size: 15px;
+            font-weight: 600;
+            color: #fff;
+        }
+
+        .scope-description {
+            margin-top: 8px;
+            margin-left: 26px;
+            font-size: 13px;
+            line-height: 1.5;
+            color: rgba(255, 255, 255, 0.55);
+        }
+
+        .actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        button {
+            border: none;
+            border-radius: 10px;
+            font-family: 'Inter', sans-serif;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: opacity 0.2s, transform 0.15s, box-shadow 0.2s;
+        }
+
+        .approve {
+            flex: 1;
+            padding: 14px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: #fff;
+            box-shadow: 0 4px 20px rgba(102, 126, 234, 0.4);
+            letter-spacing: 0.3px;
+        }
+
+        .approve:hover {
+            opacity: 0.92;
+            transform: translateY(-1px);
+            box-shadow: 0 6px 24px rgba(102, 126, 234, 0.55);
+        }
+
+        .approve:active {
+            transform: translateY(0);
+            opacity: 1;
+        }
+
+        .cancel {
+            padding: 14px 18px;
+            background: rgba(255, 255, 255, 0.08);
+            color: rgba(255, 255, 255, 0.82);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+        }
+
+        .cancel:hover {
+            background: rgba(255, 255, 255, 0.12);
+            transform: translateY(-1px);
+        }
+
+        .cancel:active {
+            transform: translateY(0);
+        }
+
+        .footer-text {
+            text-align: center;
+            margin-top: 28px;
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.25);
+        }
+    </style>
+</head>
+
+<body>
+<div class="card">
+    <div class="logo">
+        <div class="logo-icon">✅</div>
+        <span class="logo-text">Custom OAuth</span>
+    </div>
+
+    <h1>Consent required</h1>
+    <p class="subtitle">
+        <strong th:text="${clientName}">Client App</strong>
+        가 아래 권한을 요청합니다. 허용할 항목을 확인한 뒤 동의해주세요.
+    </p>
+
+    <form method="post" action="/oauth2/authorize">
+        <input type="hidden" name="client_id" th:value="${clientId}" />
+        <input type="hidden" name="state" th:value="${state}" />
+
+        <div class="scope-list">
+            <div class="scope-box" th:each="item : ${scopes}">
+                <label class="scope-label">
+                    <input type="checkbox" name="scope" th:value="${item.scope}" checked />
+                    <span class="scope-name" th:text="${item.scope}">scope</span>
+                </label>
+                <p class="scope-description" th:text="${item.description}">
+                    scope description
+                </p>
+            </div>
+        </div>
+
+        <div class="actions">
+            <button type="submit" class="approve">Submit Consent</button>
+            <button type="button" class="cancel" onclick="history.back()">Cancel</button>
+        </div>
+    </form>
+
+    <p class="footer-text">© 2025 Custom OAuth Platform</p>
+</div>
+</body>
+
+</html>
