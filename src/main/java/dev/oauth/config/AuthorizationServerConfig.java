@@ -54,7 +54,10 @@ public class AuthorizationServerConfig {
         OAuth2AuthorizationServerConfiguration.applyDefaultSecurity(http);
 
         http.getConfigurer(OAuth2AuthorizationServerConfigurer.class)
-                .oidc(Customizer.withDefaults()); // .authorizationEndpoint() 설정 삭제
+                .authorizationEndpoint(authorizationEndpoint ->
+                        authorizationEndpoint.consentPage("/oauth2/consent")
+                )
+                .oidc(Customizer.withDefaults());
 
         http
                 // 2. Resource Server 설정 유지 (이게 있어야 /userinfo가 JSON으로 나옵니다)
