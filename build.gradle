@@ -1,7 +1,7 @@
 plugins {
 	id 'java'
-	id 'org.springframework.boot' version '4.0.3'
-	id 'io.spring.dependency-management' version '1.1.7'
+	id 'org.springframework.boot' version '3.2.7'
+	id 'io.spring.dependency-management' version '1.1.5'
 }
 
 group = 'dev.custom-auth'
@@ -25,19 +25,43 @@ repositories {
 }
 
 dependencies {
-	implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+	// Web & UI
+	implementation 'org.springframework.boot:spring-boot-starter-web'
+	implementation 'org.springframework.boot:spring-boot-starter-thymeleaf'
+
+	// Security & OAuth2 (영님의 핵심 파트)
 	implementation 'org.springframework.boot:spring-boot-starter-security'
-	implementation 'org.springframework.boot:spring-boot-starter-security-oauth2-authorization-server'
-	implementation 'org.springframework.boot:spring-boot-starter-webmvc'
+	implementation 'org.springframework.boot:spring-boot-starter-oauth2-authorization-server'
+
+	// DB & Tools
+	implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
 	compileOnly 'org.projectlombok:lombok'
 	runtimeOnly 'com.mysql:mysql-connector-j'
 	annotationProcessor 'org.projectlombok:lombok'
-	testImplementation 'org.springframework.boot:spring-boot-starter-data-jpa-test'
-	testImplementation 'org.springframework.boot:spring-boot-starter-security-oauth2-authorization-server-test'
-	testImplementation 'org.springframework.boot:spring-boot-starter-security-test'
-	testImplementation 'org.springframework.boot:spring-boot-starter-webmvc-test'
-	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+
+	// Test
+	testImplementation 'org.springframework.boot:spring-boot-starter-test'
+	testImplementation 'org.springframework.security:spring-security-test'
+
+	runtimeOnly 'com.h2database:h2' // TODO: temporary setting
 }
+
+//dependencies {
+//	implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+//	implementation 'org.springframework.boot:spring-boot-starter-security'
+////	implementation 'org.springframework.boot:spring-boot-starter-security-oauth2-authorization-server'
+//	implementation 'org.springframework.boot:spring-boot-starter-webmvc'
+//	compileOnly 'org.projectlombok:lombok'
+//	runtimeOnly 'com.mysql:mysql-connector-j'
+//	annotationProcessor 'org.projectlombok:lombok'
+//	testImplementation 'org.springframework.boot:spring-boot-starter-data-jpa-test'
+////	testImplementation 'org.springframework.boot:spring-boot-starter-security-oauth2-authorization-server-test'
+//	testImplementation 'org.springframework.boot:spring-boot-starter-security-test'
+//	testImplementation 'org.springframework.boot:spring-boot-starter-webmvc-test'
+//	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+//	implementation 'org.springframework.boot:spring-boot-starter-oauth2-authorization-server'
+//	implementation 'org.springframework.boot:spring-boot-starter-thymeleaf'
+//}
 
 tasks.named('test') {
 	useJUnitPlatform()
