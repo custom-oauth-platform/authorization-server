@@ -7,6 +7,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.oauth2.core.oidc.endpoint.OidcParameterNames;
 import org.springframework.security.oauth2.server.authorization.OAuth2TokenType;
 import org.springframework.security.oauth2.server.authorization.token.JwtEncodingContext;
 import org.springframework.security.oauth2.server.authorization.token.OAuth2TokenCustomizer;
@@ -23,12 +24,11 @@ public class JwtCustomizer {
     @Bean
     public OAuth2TokenCustomizer<JwtEncodingContext> jwtTokenCustomizer() {
         return (context) -> {
-            // 발급되는 토큰이 '액세스 토큰'일 경우에만 클레임(데이터) 추가
-            if (OAuth2TokenType.ACCESS_TOKEN.equals(context.getTokenType())) {
-                Authentication principal = context.getPrincipal();
-                Set<String> authorizedScopes = context.getAuthorizedScopes();
-                MemberProfile profile = memberProfileRepository.findByUserId(principal.getName()).orElse(null);
+            Authentication principal = context.getPrincipal();
+            Set<String> authorizedScopes = context.getAuthorizedScopes();
+            MemberProfile profile = memberProfileRepository.findByUserId(principal.getName()).orElse(null);
 
+            if (OAuth2TokenType.ACCESS_TOKEN.equals(context.getTokenType())) {
                 // 1. 인증된 사용자의 권한(Role) 추출
                 Set<String> authorities = principal.getAuthorities().stream()
                         .map(GrantedAuthority::getAuthority)
@@ -52,6 +52,20 @@ public class JwtCustomizer {
                     }
                     if (authorizedScopes.contains("birthdate") && profile.getBirthdate() != null) {
                         context.getClaims().claim("birthdate", profile.getBirthdate().toString());
+                    }
+                    if (authorizedScopes.contains("email")) {
+                        addClaimIfPresent(context, "email", profile.getEmail());
+                    }
+                }
+            }
+
+            if (OidcParameterNames.ID_TOKEN.equals(context.getTokenType().getValue())) {
+                if (authorizedScopes.contains("openid")) {
+                    context.getClaims().claim("preferred_username", principal.getName());
+                }
+                if (profile != null) {
+                    if (authorizedScopes.contains("name")) {
+                        addClaimIfPresent(context, "name", profile.getName());
                     }
                     if (authorizedScopes.contains("email")) {
                         addClaimIfPresent(context, "email", profile.getEmail());
