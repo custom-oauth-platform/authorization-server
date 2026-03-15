@@ -216,7 +216,7 @@
             <div class="scope-box" th:each="item : ${scopes}">
                 <label class="scope-label">
                     <input type="checkbox" name="scope" th:value="${item.scope}" checked />
-                    <span class="scope-name" th:text="${item.scope}">scope</span>
+                    <span class="scope-name" th:text="${item.displayName}">scope</span>
                 </label>
                 <p class="scope-description" th:text="${item.description}">
                     scope description

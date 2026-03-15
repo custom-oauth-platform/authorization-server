@@ -3,6 +3,7 @@ package dev.oauth.auth;
 import dev.oauth.user.entity.User;
 import dev.oauth.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.authority.AuthorityUtils;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -24,7 +25,9 @@ public class CustomUserDetailsService implements UserDetailsService {
         return org.springframework.security.core.userdetails.User.builder()
                 .username(user.getUsername())
                 .password(user.getPassword())
-                .roles("USER")
+                .authorities(AuthorityUtils.commaSeparatedStringToAuthorityList(
+                        user.getRole() != null && !user.getRole().isBlank() ? user.getRole() : "ROLE_USER"
+                ))
                 .build();
     }
 }
