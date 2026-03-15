@@ -203,11 +203,10 @@
 
     <h1>Consent required</h1>
     <p class="subtitle">
-        <strong th:text="${clientName}">Client App</strong>
-        가 아래 권한을 요청합니다. 허용할 항목을 확인한 뒤 동의해주세요.
+        샐러디가 아래 권한을 요청합니다. 허용할 항목을 확인한 뒤 동의해주세요.
     </p>
 
-    <form method="post" action="/oauth2/authorize">
+    <form method="post" action="/oauth2/authorize" id="consentForm">
         <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
         <input type="hidden" name="client_id" th:value="${clientId}" />
         <input type="hidden" name="state" th:value="${state}" />
@@ -215,7 +214,10 @@
         <div class="scope-list">
             <div class="scope-box" th:each="item : ${scopes}">
                 <label class="scope-label">
-                    <input type="checkbox" name="scope" th:value="${item.scope}" checked />
+                    <input type="checkbox"
+                           name="scope"
+                           th:value="${item.scope}"
+                           checked />
                     <span class="scope-name" th:text="${item.displayName}">scope</span>
                 </label>
                 <p class="scope-description" th:text="${item.description}">
@@ -232,6 +234,27 @@
 
     <p class="footer-text">© 2025 Custom OAuth Platform</p>
 </div>
+<script th:inline="javascript">
+    const consentForm = document.getElementById("consentForm");
+
+    if (consentForm) {
+        consentForm.addEventListener("submit", function (event) {
+            const requiredScopes = /*[[${scopes.?[required].![scope]}]]*/ [];
+            const checkedScopes = Array.from(
+                consentForm.querySelectorAll('input[name="scope"]:checked')
+            ).map((input) => input.value);
+
+            const hasAllRequiredScopes = requiredScopes.every((scope) =>
+                checkedScopes.includes(scope)
+            );
+
+            if (!hasAllRequiredScopes) {
+                event.preventDefault();
+                alert("필수 항목에 동의해야 다음 단계로 진행할 수 있습니다.");
+            }
+        });
+    }
+</script>
 </body>
 
 </html>
