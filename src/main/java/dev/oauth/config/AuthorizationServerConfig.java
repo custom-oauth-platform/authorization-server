@@ -18,6 +18,8 @@ import org.springframework.security.oauth2.core.AuthorizationGrantType;
 import org.springframework.security.oauth2.core.ClientAuthenticationMethod;
 import org.springframework.security.oauth2.core.oidc.OidcScopes;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
+import org.springframework.security.oauth2.server.authorization.InMemoryOAuth2AuthorizationConsentService;
+import org.springframework.security.oauth2.server.authorization.OAuth2AuthorizationConsentService;
 import org.springframework.security.oauth2.server.authorization.client.InMemoryRegisteredClientRepository;
 import org.springframework.security.oauth2.server.authorization.client.RegisteredClient;
 import org.springframework.security.oauth2.server.authorization.client.RegisteredClientRepository;
@@ -90,9 +92,10 @@ public class AuthorizationServerConfig {
                 .redirectUri("http://localhost:3000/api/auth/callback/custom-oauth")
                 .postLogoutRedirectUri("http://localhost:3000")
                 .scope(OidcScopes.OPENID)
-                .scope(OidcScopes.PROFILE)
-                .scope("read")
-                .scope("write")
+                .scope("name")
+                .scope("gender")
+                .scope("birthdate")
+                .scope("email")
                 .clientSettings(ClientSettings.builder()
                         .requireAuthorizationConsent(true)
                         .build())
@@ -103,6 +106,11 @@ public class AuthorizationServerConfig {
                 .build();
 
         return new InMemoryRegisteredClientRepository(registeredClient);
+    }
+
+    @Bean
+    public OAuth2AuthorizationConsentService authorizationConsentService() {
+        return new InMemoryOAuth2AuthorizationConsentService();
     }
 
     @Bean

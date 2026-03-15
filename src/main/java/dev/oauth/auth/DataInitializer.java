@@ -25,13 +25,15 @@ public class DataInitializer implements CommandLineRunner {
 
     @Override
     public void run(String... args) {
-        insertIfNotExists("user1", "1234");
-        insertIfNotExists("user2", "1234");
+        upsertUser("user1", "1234");
+        upsertUser("user2", "1234");
     }
 
-    private void insertIfNotExists(String username, String rawPassword) {
-        if (userRepository.findByUsername(username).isEmpty()) {
-            User user = new User(username, passwordEncoder.encode(rawPassword));
+    private void upsertUser(String username, String rawPassword) {
+        User user = userRepository.findByUsername(username).orElse(null);
+
+        if (user == null) {
+            user = new User(username, passwordEncoder.encode(rawPassword));
             userRepository.save(user);
             log.info("✅ 테스트 사용자 생성 완료: {}", username);
         } else {
