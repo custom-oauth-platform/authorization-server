@@ -20,13 +20,11 @@ public class SecurityConfig {
         http
                 .authorizeHttpRequests(authorize -> authorize
                         .requestMatchers("/login").permitAll()
-                        .requestMatchers("/userinfo").authenticated()
                         .anyRequest().authenticated())
                 .formLogin(form -> form
                         .loginPage("/login")
                         .loginProcessingUrl("/login")
                         .failureUrl("/login?error=true")
-                        .defaultSuccessUrl("/login/success", false)
                         .permitAll())
                 .logout(logout -> logout
                         .logoutUrl("/logout")

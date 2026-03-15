@@ -2,8 +2,6 @@ package dev.oauth.auth;
 
 import dev.oauth.profile.entity.MemberProfile;
 import dev.oauth.profile.repository.MemberProfileRepository;
-import dev.oauth.user.entity.User;
-import dev.oauth.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -20,7 +18,6 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class JwtCustomizer {
 
-    private final UserRepository userRepository;
     private final MemberProfileRepository memberProfileRepository;
 
     @Bean
@@ -30,7 +27,6 @@ public class JwtCustomizer {
             if (OAuth2TokenType.ACCESS_TOKEN.equals(context.getTokenType())) {
                 Authentication principal = context.getPrincipal();
                 Set<String> authorizedScopes = context.getAuthorizedScopes();
-                User user = userRepository.findByUsername(principal.getName()).orElse(null);
                 MemberProfile profile = memberProfileRepository.findByUserId(principal.getName()).orElse(null);
 
                 // 1. 인증된 사용자의 권한(Role) 추출

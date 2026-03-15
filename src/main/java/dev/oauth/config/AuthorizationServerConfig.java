@@ -62,7 +62,7 @@ public class AuthorizationServerConfig {
                 .oidc(Customizer.withDefaults());
 
         http
-                // 2. Resource Server 설정 유지 (이게 있어야 /userinfo가 JSON으로 나옵니다)
+                // 2. JWT 기반 요청 처리를 위해 Resource Server 설정 유지
                 .oauth2ResourceServer(oauth2 -> oauth2.jwt(Customizer.withDefaults()))
 
                 // 3. 브라우저 요청은 로그인 페이지로, API 요청은 401로 응답하도록 설정

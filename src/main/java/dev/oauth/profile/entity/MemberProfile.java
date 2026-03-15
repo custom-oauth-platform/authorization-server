@@ -10,7 +10,9 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 
 import java.time.LocalDate;
+import lombok.Getter;
 
+@Getter
 @Entity
 @Table(name = "resource_member_profile")
 public class MemberProfile {
@@ -37,23 +39,4 @@ public class MemberProfile {
     protected MemberProfile() {
     }
 
-    public String getUserId() {
-        return userId;
-    }
-
-    public String getName() {
-        return name;
-    }
-
-    public String getEmail() {
-        return email;
-    }
-
-    public Gender getGender() {
-        return gender;
-    }
-
-    public LocalDate getBirthdate() {
-        return birthdate;
-    }
 }
