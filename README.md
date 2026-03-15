@@ -8,6 +8,8 @@ Spring Authorization Server 기반 OAuth 2.0 / OIDC 인증 서버입니다.
 - `authorization-server`: 로그인, 동의 화면, 인가 코드, 토큰 발급을 담당하는 인증 서버
 - `resource-server`: 액세스 토큰을 검증하고 마이페이지 데이터를 제공하는 리소스 서버
 
+<br />
+
 ## 역할
 
 이 서버가 담당하는 기능은 아래와 같습니다.
@@ -18,6 +20,8 @@ Spring Authorization Server 기반 OAuth 2.0 / OIDC 인증 서버입니다.
 - 사용자 동의 화면 렌더링
 - 동의된 scope 기준 클레임 구성
 
+<br />
+
 ## 로그인 흐름
 
 1. 클라이언트 서버에서 로그인 버튼을 누릅니다.
@@ -27,6 +31,8 @@ Spring Authorization Server 기반 OAuth 2.0 / OIDC 인증 서버입니다.
 5. 클라이언트는 발급받은 Access Token으로 resource server에 요청합니다.
 6. resource server는 auth server의 issuer/JWK 기준으로 JWT 서명을 검증합니다.
 7. resource server는 DB에서 `user_id`가 일치하는 프로필을 조회하고, scope에 맞는 값만 마이페이지에 반환합니다.
+
+<br />
 
 ## Scope 정책
 
@@ -43,6 +49,8 @@ Spring Authorization Server 기반 OAuth 2.0 / OIDC 인증 서버입니다.
 - `openid`: 로그인 식별용 필수 scope입니다.
 - `name`: 동의 화면에 노출되며, 체크하지 않으면 제출되지 않도록 클라이언트 검증이 적용됩니다.
 - `gender`, `birthdate`, `email`: 선택 동의 항목입니다.
+
+<br />
 
 ## DB 구성
 
@@ -80,6 +88,8 @@ Spring Authorization Server 기반 OAuth 2.0 / OIDC 인증 서버입니다.
 
 현재 구조에서는 외래키를 직접 사용하지 않고, auth DB와 resource DB의 `user_id`가 같다고 가정하고 연결합니다.
 
+<br />
+
 ## 토큰 구성
 
 ### Access Token
@@ -105,6 +115,8 @@ resource server API 호출에 사용합니다.
 - `preferred_username`
 - `name`
 - `email`
+
+<br />
 
 ## 디렉토리 구조
 
@@ -151,6 +163,8 @@ src/main/java/dev/oauth
 - `profile`: 프로필 DB 엔티티와 리포지토리
 - `user`: 로그인용 사용자 계정 엔티티와 리포지토리
 
+<br />
+
 ## 기본 설정값
 
 현재 기본 설정은 [`src/main/resources/application.properties`](/mnt/c/OAuth/authorization-server/src/main/resources/application.properties)에 있습니다.
@@ -161,6 +175,8 @@ src/main/java/dev/oauth
 - Issuer: `http://localhost:9000`
 - Client ID: `oauth2-client-app`
 - Redirect URI: `http://localhost:3000/api/auth/callback/custom-oauth`
+
+<br />
 
 ## 실행 방법
 
@@ -178,6 +194,8 @@ src/main/java/dev/oauth
 기본 주소:
 
 - Authorization Server: `http://localhost:9000`
+
+<br />
 
 ## 주의사항
 
