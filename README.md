@@ -1,204 +1,115 @@
-# Authorization Server
+# Custom Spring Authorization Server
 
-Spring Authorization Server 기반 OAuth 2.0 / OIDC 인증 서버입니다.
+이 프로젝트는 Spring Authorization Server를 기반으로 구축된 맞춤형 OAuth2.0 및 OpenID Connect(OIDC) 1.0 인가 서버(Authorization Server)입니다. 현재 프로젝트는 다음과 같은 전체 서비스 구조의 핵심 인증 계층을 담당합니다.
 
-이 서버는 현재 `/mnt/c/OAuth` 아래의 3개 서버 구조에서 인증 서버 역할을 담당합니다.
+- **client-application**: 로그인 버튼과 마이페이지 UI를 제공하는 프론트엔드/클라이언트
 
-- `client-application`: 로그인 버튼과 마이페이지 UI를 제공하는 클라이언트 서버
-- `authorization-server`: 로그인, 동의 화면, 인가 코드, 토큰 발급을 담당하는 인증 서버
-- `resource-server`: 액세스 토큰을 검증하고 마이페이지 데이터를 제공하는 리소스 서버
+- **authorization-server**: 사용자 인증, 동의 화면, 토큰 발급을 담당 (본 레포지토리)
 
-<br />
+- **resource-server**: 토큰 검증 및 실제 API 데이터(프로필 등) 제공
 
-## 역할
+# ✨ 주요 기능 (Key Features)
 
-이 서버가 담당하는 기능은 아래와 같습니다.
+- **OAuth 2.0 & OIDC 1.0 지원: 표준 Authorization Code Grant 타입을 지원합니다.**
 
-- 사용자 로그인 처리
-- OAuth 2.0 Authorization Code 발급
-- Access Token / ID Token 발급
-- 사용자 동의 화면 렌더링
-- 동의된 scope 기준 클레임 구성
+- **멀티 데이터소스 아키텍처**:
 
-<br />
+  - **Auth DB**: 인가 서버가 소유하며, 로그인 계정 정보(ID/PW/Role)를 관리합니다.
 
-## 로그인 흐름
+  - **Profile DB**: 리소스 서버의 DB를 참조하여 JWT 클레임 생성을 위한 상세 정보(이름/성별/생일 등)를 읽어옵니다.
 
-1. 클라이언트 서버에서 로그인 버튼을 누릅니다.
-2. 사용자는 auth 서버 로그인 페이지(`/login`)로 이동합니다.
-3. 로그인 성공 후 동의 화면(`/oauth2/consent`)이 표시됩니다.
-4. 사용자가 동의한 scope 기준으로 인가 코드와 토큰이 발급됩니다.
-5. 클라이언트는 발급받은 Access Token으로 resource server에 요청합니다.
-6. resource server는 auth server의 issuer/JWK 기준으로 JWT 서명을 검증합니다.
-7. resource server는 DB에서 `user_id`가 일치하는 프로필을 조회하고, scope에 맞는 값만 마이페이지에 반환합니다.
+- **커스텀 JWT 토큰 클레임 (JwtCustomizer):**
 
-<br />
+  - 사용자의 roles 정보를 Access Token에 주입합니다.
 
-## Scope 정책
+  - 요청된 scope에 따라 프로필 DB에서 데이터를 조회하여 name, email, gender, birthdate 등을 동적으로 추가합니다.
+ 
 
-현재 등록된 scope는 아래와 같습니다.
+# 🔄 로그인 흐름 (Auth Flow)
 
-- `openid`
-- `name`
-- `gender`
-- `birthdate`
-- `email`
+1. **클라이언트 요청**: 사용자가 클라이언트 앱에서 로그인 버튼을 누릅니다.
 
-정책은 다음과 같습니다.
+2. **인증 진행**: 인가 서버의 커스텀 로그인 페이지(/login)로 리다이렉트되어 아이디/비밀번호를 입력합니다.
 
-- `openid`: 로그인 식별용 필수 scope입니다.
-- `name`: 동의 화면에 노출되며, 체크하지 않으면 제출되지 않도록 클라이언트 검증이 적용됩니다.
-- `gender`, `birthdate`, `email`: 선택 동의 항목입니다.
+3. **사용자 동의**: 로그인 성공 후, 요청된 Scope에 대해 사용자가 권한을 허용하는 동의 화면(/oauth2/consent)이 표시됩니다.
 
-<br />
+4. **토큰 발급**: 인가 코드(Code) 교환 과정을 거쳐 Access Token과 ID Token이 발급됩니다. 이때 JwtCustomizer가 프로필 DB를 조회하여 토큰 내부 내용을 채웁니다.
 
-## DB 구성
+5. **리소스 접근**: 클라이언트는 발급받은 토큰으로 리소스 서버의 데이터를 안전하게 호출합니다.
 
-이 프로젝트는 2개의 MySQL 데이터소스를 사용합니다.
+# 🛠 데이터베이스 세팅 (Database Setup)
 
-### 1. 인증 DB
+프로젝트 실행 전 아래 SQL을 실행하여 초기 데이터를 생성하세요. 현재 테스트 환경에서는 원활한 로그인을 위해 평문 비밀번호 사용을 권장합니다.
 
-`spring.datasource.*`
+## 1. Auth Database (인증 서버 전용)
+```sql
 
-- DB: `oauth_authorization_db`
-- 용도: 로그인용 사용자 계정 조회
-- 주요 테이블: `auth_member`
+CREATE DATABASE IF NOT EXISTS oauth_authorization_db;
+USE oauth_authorization_db;
 
-사용 정보:
+CREATE TABLE auth_member (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    user_id VARCHAR(50) UNIQUE NOT NULL,
+    password VARCHAR(255) NOT NULL,
+    role VARCHAR(20) DEFAULT 'ROLE_USER',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
 
-- `user_id`
-- `password`
-- `role`
-
-### 2. 프로필 DB
-
-`app.datasource.profile.*`
-
-- DB: `oauth_resource_db`
-- 용도: 프로필 정보 조회
-- 주요 테이블: `resource_member_profile`
-
-사용 정보:
-
-- `user_id`
-- `name`
-- `email`
-- `gender`
-- `birthdate`
-
-현재 구조에서는 외래키를 직접 사용하지 않고, auth DB와 resource DB의 `user_id`가 같다고 가정하고 연결합니다.
-
-<br />
-
-## 토큰 구성
-
-### Access Token
-
-resource server API 호출에 사용합니다.
-
-동의된 scope 기준으로 아래 클레임이 포함될 수 있습니다.
-
-- `user_id`
-- `preferred_username`
-- `name`
-- `email`
-- `gender`
-- `birthdate`
-- `roles`
-
-### ID Token
-
-클라이언트가 로그인 직후 사용자 정보를 표시할 때 사용합니다.
-
-현재 ID Token에는 아래 정보가 들어갈 수 있습니다.
-
-- `preferred_username`
-- `name`
-- `email`
-
-<br />
-
-## 디렉토리 구조
-
-```text
-src/main/java/dev/oauth
-├── auth
-│   ├── CustomUserDetailsService.java
-│   ├── JwtCustomizer.java
-│   └── LoginController.java
-├── client
-│   └── service
-│       └── ClientLookupService.java
-├── config
-│   ├── AuthDataSourceConfig.java
-│   ├── AuthorizationServerConfig.java
-│   ├── ProfileDataSourceConfig.java
-│   └── SecurityConfig.java
-├── consent
-│   ├── controller
-│   │   └── ConsentController.java
-│   ├── dto
-│   │   └── ConsentScopeView.java
-│   └── service
-│       └── ConsentViewService.java
-├── profile
-│   ├── entity
-│   │   ├── Gender.java
-│   │   └── MemberProfile.java
-│   └── repository
-│       └── MemberProfileRepository.java
-└── user
-    ├── entity
-    │   └── User.java
-    └── repository
-        └── UserRepository.java
+-- 비밀번호는 평문으로 입력 시 즉시 인지됩니다. (예: password123)
+INSERT INTO auth_member (user_id, password, role) VALUES
+('yeong', 'password123', 'ROLE_USER'),
+('ironman', 'password123', 'ROLE_USER'),
+('spidey', 'password123', 'ROLE_USER');
 ```
 
-디렉토리별 역할은 아래와 같습니다.
+# ⚙️ 설정 및 구조 (Configuration & Structure)
 
-- `auth`: 로그인 처리, 사용자 인증, JWT/ID 토큰 클레임 구성
-- `client`: 등록된 OAuth 클라이언트 조회
-- `config`: 인가 서버, 시큐리티, 데이터소스 설정
-- `consent`: 동의 화면 렌더링과 scope 표시 가공
-- `profile`: 프로필 DB 엔티티와 리포지토리
-- `user`: 로그인용 사용자 계정 엔티티와 리포지토리
+## 1. 디렉토리 구조
 
-<br />
+```bash
+src/main/java/dev/oauth
+├── auth        # 로그인 처리, 사용자 인증, JWT 클레임 구성 (JwtCustomizer 등)
+├── config      # 인가 서버, 시큐리티, 멀티 데이터소스 설정
+├── consent     # 사용자 동의 화면(Scope 가공) 관련 로직
+├── profile     # 리소스 서버 DB(프로필) 참조용 엔티티 및 리포지토리
+└── user        # 인증용 계정 DB(Auth) 엔티티 및 리포지토리
+```
+
+## 2. 레포지토리 역할
+
+- **UserRepository**: auth_member 테이블과 연결되어 아이디/비번 일치 여부를 확인합니다.
+
+- **MemberProfileRepository**: 리소스 서버의 DB를 읽기 전용으로 참조하여 JWT의 상세 내용(Claim)을 채우는 데 사용됩니다.
+
+## 3. 패스워드 처리 (SecurityConfig)
+
+- 비밀번호가 {bcrypt}로 시작하지 않으면 평문 그대로 비교합니다.
+
+- 테스트 중에는 DB에 비밀번호를 직접 입력(예: password123)하여 간편하게 테스트할 수 있습니다.
+
+# 🚀 시작하기 (Getting Started)
 
 ## 기본 설정값
 
-현재 기본 설정은 [`src/main/resources/application.properties`](/mnt/c/OAuth/authorization-server/src/main/resources/application.properties)에 있습니다.
+- Port: 9000
 
-핵심 값:
+- Issuer: http://localhost:9000
 
-- Port: `9000`
-- Issuer: `http://localhost:9000`
-- Client ID: `oauth2-client-app`
-- Redirect URI: `http://localhost:3000/api/auth/callback/custom-oauth`
+- Client ID: oauth2-client-app / Secret: secret
 
-<br />
+- Redirect URI: http://localhost:3000/api/auth/callback/custom-oauth
 
 ## 실행 방법
 
-사전 준비:
-
-- Java 17
-- MySQL
-
-실행:
-
 ```bash
+# DB 설정 후 실행
 ./gradlew bootRun
 ```
 
-기본 주소:
+## ⚠️ 주의사항
 
-- Authorization Server: `http://localhost:9000`
+- **클라이언트 정보**: 현재 RegisteredClientRepository에 코드상으로 하드코딩되어 있습니다.
 
-<br />
+- **동의 세션**: InMemory 방식을 사용하므로 서버 재시작 시 사용자의 권한 동의 내역이 초기화됩니다.
 
-## 주의사항
-
-- 현재 클라이언트 등록 정보는 코드에 하드코딩되어 있습니다.
-- 동의 정보는 `InMemoryOAuth2AuthorizationConsentService`를 사용하므로 서버 재시작 시 유지되지 않습니다.
-- 클라이언트/리소스 서버와 함께 실행해야 전체 로그인 흐름을 확인할 수 있습니다.
+- **연동 테스트**: 전체 흐름 확인을 위해 클라이언트 서버와 리소스 서버가 함께 실행 중이어야 합니다.
