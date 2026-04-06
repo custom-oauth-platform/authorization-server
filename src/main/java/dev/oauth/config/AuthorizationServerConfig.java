@@ -5,9 +5,9 @@ import com.nimbusds.jose.jwk.RSAKey;
 import com.nimbusds.jose.jwk.source.ImmutableJWKSet;
 import com.nimbusds.jose.jwk.source.JWKSource;
 import com.nimbusds.jose.proc.SecurityContext;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -28,6 +28,7 @@ import org.springframework.security.oauth2.server.authorization.config.annotatio
 import org.springframework.security.oauth2.server.authorization.settings.AuthorizationServerSettings;
 import org.springframework.security.oauth2.server.authorization.settings.ClientSettings;
 import org.springframework.security.oauth2.server.authorization.settings.TokenSettings;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.HttpStatusEntryPoint;
 import org.springframework.security.web.authentication.LoginUrlAuthenticationEntryPoint;
@@ -44,9 +45,34 @@ import java.util.UUID;
 public class AuthorizationServerConfig {
 
     private final PasswordEncoder passwordEncoder;
+    private final String clientId;
+    private final String clientSecret;
+    private final String redirectUri;
+    private final String postLogoutRedirectUri;
+    private final String issuer;
+    private final long accessTokenTtlMinutes;
+    private final long refreshTokenTtlDays;
+    private final OAuthTokenRequestLoggingFilter oAuthTokenRequestLoggingFilter;
 
-    public AuthorizationServerConfig(PasswordEncoder passwordEncoder) {
+    public AuthorizationServerConfig(
+            PasswordEncoder passwordEncoder,
+            @Value("${app.oauth.client-id}") String clientId,
+            @Value("${app.oauth.client-secret}") String clientSecret,
+            @Value("${app.oauth.redirect-uri}") String redirectUri,
+            @Value("${app.oauth.post-logout-redirect-uri}") String postLogoutRedirectUri,
+            @Value("${app.oauth.issuer}") String issuer,
+            @Value("${app.oauth.access-token-ttl-minutes}") long accessTokenTtlMinutes,
+            @Value("${app.oauth.refresh-token-ttl-days}") long refreshTokenTtlDays,
+            OAuthTokenRequestLoggingFilter oAuthTokenRequestLoggingFilter) {
         this.passwordEncoder = passwordEncoder;
+        this.clientId = clientId;
+        this.clientSecret = clientSecret;
+        this.redirectUri = redirectUri;
+        this.postLogoutRedirectUri = postLogoutRedirectUri;
+        this.issuer = issuer;
+        this.accessTokenTtlMinutes = accessTokenTtlMinutes;
+        this.refreshTokenTtlDays = refreshTokenTtlDays;
+        this.oAuthTokenRequestLoggingFilter = oAuthTokenRequestLoggingFilter;
     }
 
     @Bean
@@ -62,6 +88,7 @@ public class AuthorizationServerConfig {
                 .oidc(Customizer.withDefaults());
 
         http
+                .addFilterBefore(oAuthTokenRequestLoggingFilter, UsernamePasswordAuthenticationFilter.class)
                 // 2. JWT 기반 요청 처리를 위해 Resource Server 설정 유지
                 .oauth2ResourceServer(oauth2 -> oauth2.jwt(Customizer.withDefaults()))
 
@@ -83,14 +110,14 @@ public class AuthorizationServerConfig {
     @Bean
     public RegisteredClientRepository registeredClientRepository() {
         RegisteredClient registeredClient = RegisteredClient.withId(UUID.randomUUID().toString())
-                .clientId("oauth2-client-app")
-                .clientSecret(passwordEncoder.encode("secret"))
+                .clientId(clientId)
+                .clientSecret(passwordEncoder.encode(clientSecret))
                 .clientAuthenticationMethod(ClientAuthenticationMethod.CLIENT_SECRET_BASIC)
                 .clientAuthenticationMethod(ClientAuthenticationMethod.CLIENT_SECRET_POST)
                 .authorizationGrantType(AuthorizationGrantType.AUTHORIZATION_CODE)
                 .authorizationGrantType(AuthorizationGrantType.REFRESH_TOKEN)
-                .redirectUri("http://localhost:3000/api/auth/callback/custom-oauth")
-                .postLogoutRedirectUri("http://localhost:3000")
+                .redirectUri(redirectUri)
+                .postLogoutRedirectUri(postLogoutRedirectUri)
                 .scope(OidcScopes.OPENID)
                 .scope("name")
                 .scope("gender")
@@ -98,10 +125,11 @@ public class AuthorizationServerConfig {
                 .scope("email")
                 .clientSettings(ClientSettings.builder()
                         .requireAuthorizationConsent(true)
+                        .requireProofKey(true)
                         .build())
                 .tokenSettings(TokenSettings.builder()
-                        .accessTokenTimeToLive(Duration.ofMinutes(30)) // 액세스 토큰 30분 (캐싱 기준점)
-                        .refreshTokenTimeToLive(Duration.ofDays(15))   // 리프레시 토큰 15일
+                        .accessTokenTimeToLive(Duration.ofMinutes(accessTokenTtlMinutes))
+                        .refreshTokenTimeToLive(Duration.ofDays(refreshTokenTtlDays))
                         .build())
                 .build();
 
@@ -146,7 +174,7 @@ public class AuthorizationServerConfig {
     @Bean
     public AuthorizationServerSettings authorizationServerSettings() {
         return AuthorizationServerSettings.builder()
-                .issuer("http://localhost:9000")
+                .issuer(issuer)
                 .build();
     }
 }

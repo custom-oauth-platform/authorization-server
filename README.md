@@ -12,6 +12,8 @@
 
 - **OAuth 2.0 & OIDC 1.0 지원: 표준 Authorization Code Grant 타입을 지원합니다.**
 
+- **PKCE 적용: Authorization Code Grant 요청 시 `code_challenge` / `code_verifier`를 필수로 검증합니다.**
+
 - **멀티 데이터소스 아키텍처**:
 
   - **Auth DB**: 인가 서버가 소유하며, 로그인 계정 정보(ID/PW/Role)를 관리합니다.
@@ -97,6 +99,8 @@ src/main/java/dev/oauth
 
 - Client ID: oauth2-client-app / Secret: secret
 
+- PKCE: required (`code_challenge_method=S256`)
+
 - Redirect URI: http://localhost:3000/api/auth/callback/custom-oauth
 
 ## 실행 방법
@@ -108,8 +112,42 @@ src/main/java/dev/oauth
 
 ## ⚠️ 주의사항
 
-- **클라이언트 정보**: 현재 RegisteredClientRepository에 코드상으로 하드코딩되어 있습니다.
+- **클라이언트 정보**: 현재 RegisteredClientRepository에서 애플리케이션 프로퍼티(`app.oauth.*`)를 읽어 단일 클라이언트를 등록합니다.
+
+- **PKCE 필수**: `/oauth2/authorize` 요청 시 `code_challenge`와 `code_challenge_method=S256`가 없으면 인가 코드가 발급되지 않습니다.
+
+- **토큰 교환**: `/oauth2/token` 요청 시 인가 단계에서 사용한 값과 매칭되는 `code_verifier`를 반드시 보내야 합니다.
 
 - **동의 세션**: InMemory 방식을 사용하므로 서버 재시작 시 사용자의 권한 동의 내역이 초기화됩니다.
 
 - **연동 테스트**: 전체 흐름 확인을 위해 클라이언트 서버와 리소스 서버가 함께 실행 중이어야 합니다.
+
+## PKCE 요청 예시
+
+브라우저 또는 SPA/모바일 클라이언트는 인가 요청 단계에서 `code_verifier`를 생성한 뒤 SHA-256 + Base64URL 방식으로 `code_challenge`를 계산해서 전달해야 합니다.
+
+### 1. 인가 요청
+
+```text
+GET /oauth2/authorize?
+ response_type=code&
+ client_id=oauth2-client-app&
+ redirect_uri=http://localhost:3000/api/auth/callback/custom-oauth&
+ scope=openid%20name%20email&
+ code_challenge=BASE64URL_ENCODED_SHA256(code_verifier)&
+ code_challenge_method=S256
+```
+
+### 2. 토큰 교환 요청
+
+```bash
+curl -X POST http://localhost:9000/oauth2/token \
+  -u oauth2-client-app:secret \
+  -H "Content-Type: application/x-www-form-urlencoded" \
+  -d "grant_type=authorization_code" \
+  -d "code=AUTHORIZATION_CODE" \
+  -d "redirect_uri=http://localhost:3000/api/auth/callback/custom-oauth" \
+  -d "code_verifier=ORIGINAL_CODE_VERIFIER"
+```
+
+NextAuth, App Router, 모바일 SDK처럼 PKCE를 기본 지원하는 클라이언트는 보통 별도 커스텀 검증 로직 없이도 이 서버 설정만으로 연동 가능합니다.
